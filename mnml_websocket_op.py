@@ -38,8 +38,8 @@ class MNML_OT_WebSocket(bpy.types.Operator):
     _timer = None
     _running = False
 
-    port: bpy.props.IntProperty(name="Port", default=1235, min=1000, max=99999)
     host: bpy.props.StringProperty(name="Host", default='localhost')
+    port: bpy.props.IntProperty(name="Port", default=1235, min=1000, max=99999)
 
     def execute(self, context):        # execute() is called when running the operator.
         running = context.scene.mnml_server_running
@@ -48,13 +48,14 @@ class MNML_OT_WebSocket(bpy.types.Operator):
             self.stop_server()
         else:
             self._running = True
-            self.start_server()
+            self.start_server(self.host, self.port)
         context.scene.mnml_server_running = self._running
         self.report({'INFO'}, f'Server is running at {self.host}:{self.port}' if self._running else 'Server is stopped')
+        return {'FINISHED'} 
 
 
     def invoke(self, context, event):
-        print('invoke')
+        self.report({'INFO'}, f'INVOKED')
         self.execute(context)
         self._timer = context.window_manager.event_timer_add(1/30, window=context.window)
         context.window_manager.modal_handler_add(self)
@@ -90,7 +91,7 @@ class MNML_OT_WebSocket(bpy.types.Operator):
             print(res)
         return {'PASS_THROUGH'}
 
-    def start_server(self):
+    def start_server(self, host, port):
 
         global loop
         global thread
@@ -101,7 +102,7 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         asyncio.set_event_loop(loop)
         stop_future = loop.create_future()
 
-        thread = threading.Thread(target=self.run_loop, args=[loop, self.echo_server, self.handler, self.host, self.port, stop_future])
+        thread = threading.Thread(target=self.run_loop, args=[loop, self.echo_server, self.handler, host, port, stop_future])
         thread.start()
 
     def stop_server(self):

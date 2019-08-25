@@ -29,6 +29,7 @@ import threading
 from .mnml_panel import MNML_PT_Panel
 from .mnml_websocket_op import MNML_OT_WebSocket
 from .mnml_websocket_op import stop_server
+from .mnml_preference_pane import MNML_PT_Preference
 
 
 #
@@ -36,7 +37,8 @@ from .mnml_websocket_op import stop_server
 #
 classes = (
     MNML_OT_WebSocket,
-    MNML_PT_Panel
+    MNML_PT_Panel,
+    MNML_PT_Preference
 )
 #
 # register
@@ -44,15 +46,23 @@ classes = (
 def register():
     for c in classes:
         bpy.utils.register_class(c)
+
     bpy.types.Scene.mnml_server_running = bpy.props.BoolProperty(default=False)
     bpy.types.Scene.mnml_server_connection_count = bpy.props.IntProperty(default=0)
+
+    addons = bpy.context.preferences.addons
+    name = __package__
+    if name in addons:
+        if addons[name].preferences.auto_start:
+            bpy.ops.mnml.websocket(host=addons[name].preferences.host,
+                                   port=addons[name].preferences.port)
 
 #
 # unregister()
 #    
 def unregister():
     for c in classes:
-        bpy.utils.register_class(c)
+        bpy.utils.unregister_class(c)
     del bpy.types.Scene.mnml_server_running
     del bpy.types.Scene.mnml_server_connection_count
 
