@@ -9,6 +9,7 @@ class MNML_PT_Panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.row().label(text=f"Number of Connection: {context.scene.mnml_server_connection_count}")
+        if context.scene.mnml_server_running:
+            layout.row().label(text=f"Number of Connection: {context.scene.mnml_server_connection_count}")
         row = layout.row()
         row.operator('mnml.websocket', text=('Stop WebSocket Server' if context.scene.mnml_server_running else 'Start WebSocket Server'))
