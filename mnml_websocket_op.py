@@ -5,8 +5,6 @@ import functools
 import datetime
 import threading
 import websockets
-from queue import Queue
-
 
 connected = set()
 loop = None
@@ -75,7 +73,7 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         if filepath != None:
             _filepath = filepath
             filepath = None
-            [_path, collection_name] = _filepath.split(':')
+            [_path, collection_name] = _filepath.split('#')
             if collection_name != None:
                 if collection_name in bpy.data.collections:
                     old_collection = bpy.data.collections[collection_name]
@@ -122,8 +120,8 @@ class MNML_OT_WebSocket(bpy.types.Operator):
                 async for message in websocket:
                     j = json.loads(message)
                     if j['action'] == 'update':
-                        filepath = j['filepath'] + ":" + j['collection_name']
-                    await asyncio.wait([ws.send(message) for ws in connected])
+                        filepath = j['filepath'] + "#" + j['collectionName']
+                await asyncio.wait([ws.send(message) for ws in connected])
         finally:
             connected.remove(websocket)
             print(f'Remaining Connection: {len(connected)}')
