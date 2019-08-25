@@ -30,12 +30,32 @@ from .mnml_panel import MNML_PT_Panel
 from .mnml_websocket_op import MNML_OT_WebSocket
 from .mnml_websocket_op import stop_server
 
+
+#
+# classes to register
+#
 classes = (
     MNML_OT_WebSocket,
     MNML_PT_Panel
 )
+#
+# register
+#
+def register():
+    for c in classes:
+        bpy.utils.register_class(c)
+    bpy.types.Scene.mnml_server_running = bpy.props.BoolProperty(default=False)
+    bpy.types.Scene.mnml_server_connection_count = bpy.props.IntProperty(default=0)
 
-register, unregister = bpy.utils.register_classes_factory(classes)
+#
+# unregister()
+#    
+def unregister():
+    for c in classes:
+        bpy.utils.register_class(c)
+    del bpy.types.Scene.mnml_server_running
+    del bpy.types.Scene.mnml_server_connection_count
+
 
 
 # Need to check when blender quits...
@@ -51,9 +71,8 @@ def check_threads():
             if thread.name == 'MainThread' and not thread.is_alive():
                 stop_server()
                 running.clear()
-                checking_thread.join()
 
-checking_thread = threading.Thread(target=check_threads)
+checking_thread = threading.Thread(target=check_threads, daemon=True)
 checking_thread.start()
 
 if __name__ == "__main__":
