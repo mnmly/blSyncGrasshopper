@@ -151,12 +151,12 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         connected.add(websocket)
 
         try:
-            while True:
+            while loop.is_running():
                 async for message in websocket:
                     j = json.loads(message)
                     if j['action'] == 'update':
                         filepath = j['filepath'] + "#" + j['collectionName']
-                await asyncio.wait([ws.send(message) for ws in connected])
+            raise Exception('loop ended')
         finally:
             connected.remove(websocket)
             print(f'Remaining Connection: {len(connected)}')
