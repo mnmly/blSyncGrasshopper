@@ -53,6 +53,7 @@ def register():
     addons = bpy.context.preferences.addons
     name = __package__
     if name in addons:
+        # TODO: It should auto start server
         if addons[name].preferences.auto_start:
             bpy.ops.mnml.websocket(host=addons[name].preferences.host,
                                    port=addons[name].preferences.port)

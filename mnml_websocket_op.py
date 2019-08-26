@@ -7,6 +7,7 @@ import threading
 import websockets
 
 connected = set()
+import_log = dict()
 loop = None
 thread = None
 server = None
@@ -68,28 +69,61 @@ class MNML_OT_WebSocket(bpy.types.Operator):
 
     def modal(self, context, event):
         global filepath
+        global import_log
+
+        collections = bpy.data.collections
+
         # print(f"{datetime.datetime.now()} --- {event.type}: {filepath}")
         if context.scene.mnml_server_connection_count != len(connected):
             context.scene.mnml_server_connection_count = len(connected)
+
+        if filepath == None:
+            # Set flag for importing files       
+            for (collection_name, _filepaths) in import_log.items():
+                if collection_name in collections and len(collections[collection_name].objects) > 0:
+                    # importing has done!
+                    if len(import_log[collection_name]) > 1:
+                        _path = import_log[collection_name][-1]
+                        filepath = _path + '#' + collection_name
+                        import_log[collection_name] = [_path]
+                    else:
+                        import_log[collection_name] = []
+
         if filepath != None:
-            _filepath = filepath
+
+            [_path, collection_name] = filepath.split('#')
+
+            # collection_name must be parsed, it not, kill it.
+            if collection_name == None:
+                filepath = None
+                return {'PASS_THROUGH'}
+
+            # Logs importing history
+            if collection_name in import_log:
+                import_log[collection_name].append(_path)
+            else:
+                import_log[collection_name] = [_path]
+            self.import_alembic(context, _path, collection_name)
             filepath = None
-            [_path, collection_name] = _filepath.split('#')
-            if collection_name != None:
-                if collection_name in bpy.data.collections:
-                    old_collection = bpy.data.collections[collection_name]
-                    for obj in old_collection.objects:
-                        bpy.data.objects.remove(obj, do_unlink=True)
-                    bpy.data.collections[0].children.unlink(old_collection)
-                    bpy.data.collections.remove(old_collection, do_unlink=True)
-                new_collection = bpy.data.collections.new(collection_name)
-                bpy.data.collections[0].children.link(new_collection)
-                # Select it as active layer before imports
-                index = bpy.data.collections[0].children.find(collection_name)
-                context.view_layer.active_layer_collection = context.view_layer.layer_collection.children[0].children[index]
-            res = bpy.ops.wm.alembic_import(filepath=_path, as_background_job=True)
-            print(res)
+
         return {'PASS_THROUGH'}
+
+    def import_alembic(self, context, path, collection_name):
+
+        # remove previously created collection
+        if collection_name in bpy.data.collections:
+            old_collection = bpy.data.collections[collection_name]
+            for obj in old_collection.objects:
+                bpy.data.objects.remove(obj, do_unlink=True)
+            bpy.data.collections[0].children.unlink(old_collection)
+            bpy.data.collections.remove(old_collection, do_unlink=True)
+        new_collection = bpy.data.collections.new(collection_name)
+        bpy.data.collections[0].children.link(new_collection)
+
+        # Select it as active layer before imports
+        index = bpy.data.collections[0].children.find(collection_name)
+        context.view_layer.active_layer_collection = context.view_layer.layer_collection.children[0].children[index]
+        return bpy.ops.wm.alembic_import(filepath=path, as_background_job=True)
 
     def start_server(self, host, port):
 
