@@ -1,4 +1,6 @@
-## Websocket Server for Blender
+## blSyncGrasshopper
+
+Blender add-on to communicate with Grasshopper via WebSocket
 
 
 ### Usage
