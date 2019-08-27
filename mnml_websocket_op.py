@@ -4,6 +4,7 @@ import asyncio
 import functools
 import datetime
 import threading
+import mathutils
 import websockets
 
 connected = set()
@@ -13,6 +14,7 @@ thread = None
 server = None
 stop_future = None
 filepath = None
+camera_info = None
 
 def stop_server():
     global loop
@@ -67,10 +69,36 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         self._timer = None
         return None
 
+    def look_at(self, obj_camera, point):
+        loc_camera = obj_camera.matrix_world.to_translation()
+        direction = point - loc_camera
+        # point the cameras '-Z' and use its 'Y' as up
+        rot_quat = direction.to_track_quat('-Z', 'Y')
+
+        # assume we're using euler rotation
+        obj_camera.rotation_euler = rot_quat.to_euler()
+
+
     def modal(self, context, event):
         global filepath
         global import_log
+        global camera_info
 
+        # Update Camera
+        if camera_info != None:
+            camera_name = camera_info['name']
+            if camera_name in bpy.data.objects:
+                obj_camera = bpy.data.objects[camera_name]
+                p = camera_info['position']
+                t = camera_info['target']
+                location = [float(p[0]), float(p[1]), float(p[2])]
+                target = [float(t[0]), float(t[1]), float(t[2])]
+                obj_camera.location = location
+                obj_camera.data.lens = camera_info['focalLength']
+                self.look_at(obj_camera, mathutils.Vector(target))
+            camera_info = None
+
+        # Alembic
         collections = bpy.data.collections
 
         # print(f"{datetime.datetime.now()} --- {event.type}: {filepath}")
@@ -147,6 +175,7 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         global connected
         global filepath
         global loop
+        global camera_info
 
         connected.add(websocket)
 
@@ -156,6 +185,8 @@ class MNML_OT_WebSocket(bpy.types.Operator):
                     j = json.loads(message)
                     if j['action'] == 'update':
                         filepath = j['filepath'] + "#" + j['collectionName']
+                    elif j['action'] == 'camera':
+                        camera_info = j['info']
             raise Exception('loop ended')
         finally:
             connected.remove(websocket)
