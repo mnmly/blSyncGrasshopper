@@ -1,3 +1,4 @@
+import re
 import bpy
 import json
 import asyncio
@@ -114,8 +115,11 @@ class MNML_OT_WebSocket(bpy.types.Operator):
                         _path = import_log[collection_name][-1]
                         filepath = _path + '#' + collection_name
                         import_log[collection_name] = [_path]
-                    else:
+                    elif len(import_log[collection_name]) == 1:
                         import_log[collection_name] = []
+                        # Adjust splines
+                        curves = [curve for curve in collections[collection_name].objects if curve.type =='CURVE']
+                        self.repair_curves(curves)
 
         if filepath != None:
 
@@ -135,6 +139,25 @@ class MNML_OT_WebSocket(bpy.types.Operator):
             filepath = None
 
         return {'PASS_THROUGH'}
+
+    # Repair inaccurately represented curves from Blender imports
+    def repair_curves(self, curves):
+
+        for curve in curves:
+            for spline in curve.data.splines:
+                result = re.search('d(\d+)$', curve.name)
+                is_closed = re.search('_closed_', curve.name)
+                if result != None:
+                    degree = int(result.groups()[0])
+                    spline.order_u = degree + 1
+                    spline.order_v = degree + 1
+                if spline.order_u <= 2:
+                    spline.type = 'POLY'
+                else:
+                    num_points = len(spline.points)
+                    spline.resolution_v = spline.resolution_u = 10 * num_points
+                if is_closed:
+                    spline.use_cyclic_u = spline.use_cyclic_v = True
 
     def import_alembic(self, context, path, collection_name):
 
