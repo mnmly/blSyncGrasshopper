@@ -142,7 +142,9 @@ class MNML_OT_WebSocket(bpy.types.Operator):
 
     # Repair inaccurately represented curves from Blender imports
     def repair_curves(self, curves):
-
+        mat = bpy.data.materials.get('Line')
+        if mat is None:
+            mat = bpy.data.materials.new(name='Line')
         for curve in curves:
             for spline in curve.data.splines:
                 result = re.search('d(\d+)$', curve.name)
@@ -158,6 +160,8 @@ class MNML_OT_WebSocket(bpy.types.Operator):
                     spline.resolution_v = spline.resolution_u = 10 * num_points
                 if is_closed:
                     spline.use_cyclic_u = spline.use_cyclic_v = True
+            curve.data.bevel_depth = 0.04
+            curve.data.materials.append(mat)
 
     def import_alembic(self, context, path, collection_name):
 
