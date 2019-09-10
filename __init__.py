@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Hiroaki Yamane",
     "description" : "",
     "blender" : (2, 80, 0),
-    "version" : (0, 0, 1),
+    "version" : (0, 0, 2),
     "location" : "",
     "warning" : "",
     "category" : "Generic"
@@ -32,23 +32,65 @@ from .mnml_websocket_op import stop_server
 from .mnml_preference_pane import MNML_PT_Preference
 
 
+from bpy.props import (StringProperty,
+                       BoolProperty,
+                       IntProperty,
+                       FloatProperty,
+                       FloatVectorProperty,
+                       EnumProperty,
+                       PointerProperty,
+                       )
+from bpy.types import (Panel,
+                       Menu,
+                       Operator,
+                       PropertyGroup,
+                       )
+
+
+# ------------------------------------------------------------------------
+#    Scene Properties
+# ------------------------------------------------------------------------
+
+class MyProperties(PropertyGroup):
+
+    import_spline_thickness: FloatProperty(
+        name = "Spline Thickness",
+        description = "Spline Thickness",
+        default = 0.03,
+        min = 0.001,
+        max = 10.0
+    )
+
+    websocket_port: IntProperty(
+        name = "Port",
+        description="Websocket Port",
+        default = 1235,
+        min = 0,
+        max = 999999
+    )
+
 #
 # classes to register
 #
 classes = (
     MNML_OT_WebSocket,
     MNML_PT_Panel,
-    MNML_PT_Preference
+    MNML_PT_Preference,
+    MyProperties
 )
 #
 # register
 #
 def register():
+
     for c in classes:
         bpy.utils.register_class(c)
 
     bpy.types.Scene.mnml_server_running = bpy.props.BoolProperty(default=False)
     bpy.types.Scene.mnml_server_connection_count = bpy.props.IntProperty(default=0)
+    bpy.types.Scene.mnml_server_alembic_line_thickness = bpy.props.FloatProperty(default=0.04)
+    bpy.types.Scene.mnml_properties = PointerProperty(type=MyProperties)
+
 
     addons = bpy.context.preferences.addons
     name = __package__
@@ -62,10 +104,14 @@ def register():
 # unregister()
 #    
 def unregister():
+
+    del bpy.types.Scene.mnml_properties
+
     for c in classes:
         bpy.utils.unregister_class(c)
     del bpy.types.Scene.mnml_server_running
     del bpy.types.Scene.mnml_server_connection_count
+    del bpy.types.Scene.mnml_server_alembic_line_thickness
 
 
 
