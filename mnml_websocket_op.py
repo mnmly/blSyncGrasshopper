@@ -19,7 +19,7 @@ filepath = None
 camera_info = None
 timer = None
 
-def stop_server():
+def stop_server(force):
     global loop
     global server
     global stop_future
@@ -31,7 +31,8 @@ def stop_server():
     if loop != None and thread != None and thread.is_alive():
         stop_future.set_result(None)
         loop.call_soon_threadsafe(thread.join)
-        loop.stop()
+        if force:
+            loop.stop()
 
 class MNML_OT_WebSocket(bpy.types.Operator):
     
@@ -49,7 +50,7 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         running = context.scene.mnml_server_running
         if running:
             self._running = False
-            self.stop_server()
+            self.stop_server(False)
         else:
             self._running = True
             self.start_server(self.host, self.port)
@@ -72,7 +73,7 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         context.window_manager.event_timer_remove(timer)
         timer = None
         if context.scene.mnml_server_running:
-            self.execute(context)
+            self.stop_server(True)
         return None
 
     def look_at(self, obj_camera, point):
@@ -167,7 +168,7 @@ class MNML_OT_WebSocket(bpy.types.Operator):
                     spline.resolution_v = spline.resolution_u = 10 * num_points
                 if is_closed:
                     spline.use_cyclic_u = spline.use_cyclic_v = True
-            curve.data.bevel_depth = context.scene.mnml_properties['import_spline_thickness']
+            curve.data.bevel_depth = context.scene.mnml_properties['import_spline_thickness'] if 'import_spline_thickness' in context.scene.mnml_properties else 0.04 
             curve.data.materials.append(mat)
 
     def import_alembic(self, context, path, collection_name):
@@ -201,8 +202,8 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         thread = threading.Thread(target=self.run_loop, args=[loop, self.echo_server, self.handler, host, port, stop_future])
         thread.start()
 
-    def stop_server(self):
-        stop_server()
+    def stop_server(self, force):
+        stop_server(force)
 
     async def handler(self, websocket, path):
 
@@ -238,4 +239,5 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         except Exception as e:
             print('exception is caught')
             print(e)
-        _loop.close()
+        if not _loop.is_closed:
+            _loop.close()
