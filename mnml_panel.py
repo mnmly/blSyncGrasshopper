@@ -18,5 +18,3 @@ class MNML_PT_Panel(bpy.types.Panel):
         box.label(text=f"import settings")
         row = box.row()
         row.prop(properties, "import_spline_thickness")
-        row.operator('mnml.abc_import', text='Import previous')
-

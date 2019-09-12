@@ -114,23 +114,5 @@ def unregister():
     del bpy.types.Scene.mnml_server_alembic_line_thickness
 
 
-
-# Need to check when blender quits...
-checking_thread = None
-running = threading.Event()
-running.set()
-
-def check_threads():
-    global checking_thread
-    while running.is_set():
-        time.sleep(1)
-        for thread in threading.enumerate():
-            if thread.name == 'MainThread' and not thread.is_alive():
-                stop_server()
-                running.clear()
-
-checking_thread = threading.Thread(target=check_threads, daemon=True)
-checking_thread.start()
-
 if __name__ == "__main__":
     register()

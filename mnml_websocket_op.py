@@ -4,6 +4,7 @@ import json
 import asyncio
 import functools
 import datetime
+import traceback
 import threading
 import mathutils
 import websockets
@@ -16,6 +17,7 @@ server = None
 stop_future = None
 filepath = None
 camera_info = None
+timer = None
 
 def stop_server():
     global loop
@@ -24,14 +26,12 @@ def stop_server():
     global thread
     global connected
 
-    for connection in connected:
-        loop.call_soon_threadsafe(connection.close, None)
-
     if server != None:
         loop.call_soon_threadsafe(server.close, None)
     if loop != None and thread != None and thread.is_alive():
-        loop.call_soon_threadsafe(stop_future.set_result, None)
+        stop_future.set_result(None)
         loop.call_soon_threadsafe(thread.join)
+        loop.stop()
 
 class MNML_OT_WebSocket(bpy.types.Operator):
     
@@ -61,13 +61,18 @@ class MNML_OT_WebSocket(bpy.types.Operator):
     def invoke(self, context, event):
         self.report({'INFO'}, f'INVOKED')
         self.execute(context)
-        self._timer = context.window_manager.event_timer_add(1/30, window=context.window)
-        context.window_manager.modal_handler_add(self)
+        global timer
+        if timer == None:
+            timer = context.window_manager.event_timer_add(1/30, window=context.window)
+            context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
     def cancel(self, context):
-        context.window_manager.event_timer_remove(self._timer)
-        self._timer = None
+        global timer
+        context.window_manager.event_timer_remove(timer)
+        timer = None
+        if context.scene.mnml_server_running:
+            self.execute(context)
         return None
 
     def look_at(self, obj_camera, point):
@@ -228,5 +233,9 @@ class MNML_OT_WebSocket(bpy.types.Operator):
     def run_loop(self, _loop, serve, handler, host, port, stop):
         global server
         server = serve(handler, host, port, stop)
-        _loop.run_until_complete(server)
+        try:
+            _loop.run_until_complete(server)
+        except Exception as e:
+            print('exception is caught')
+            print(e)
         _loop.close()
