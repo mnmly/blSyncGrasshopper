@@ -106,6 +106,8 @@ class MNML_OT_WebSocket(bpy.types.Operator):
         if context.scene.mnml_server_connection_count != len(connected):
             context.scene.mnml_server_connection_count = len(connected)
 
+        p_filepath = filepath
+
         if filepath == None:
             # Set flag for importing files       
             for (collection_name, _filepaths) in import_log.items():
@@ -130,8 +132,8 @@ class MNML_OT_WebSocket(bpy.types.Operator):
                 filepath = None
                 return {'PASS_THROUGH'}
 
-            # Logs importing history
-            if collection_name in import_log:
+            # Logs import history only when the file path came from socket message
+            if collection_name in import_log and p_filepath != None:
                 import_log[collection_name].append(_path)
             else:
                 import_log[collection_name] = [_path]
